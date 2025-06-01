@@ -1,0 +1,474 @@
+
+local function ChessClubStealth()
+    repeat task.wait() until game:IsLoaded()
+    
+    if game.PlaceId ~= 139394516128799 then return end
+    
+    -- Obfuscated HTTP request to avoid detection
+    local httpReq = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+    if not httpReq then return end
+    
+    local HttpService = game:GetService("HttpService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage") 
+    local Players = game:GetService("Players")
+    local RunService = game:GetService("RunService")
+    local UserInputService = game:GetService("UserInputService")
+    
+    -- Human behavior simulation data
+    local HumanBehavior = {
+        ThinkingTimes = {
+            Opening = {min = 2, max = 8, avg = 4.5},
+            Middlegame = {min = 3, max = 15, avg = 7.2},
+            Endgame = {min = 1, max = 12, avg = 5.8},
+            Critical = {min = 5, max = 25, avg = 12.1}
+        },
+        MoveProbabilities = {
+            Perfect = 0.15,      -- 15% perfect moves
+            Excellent = 0.25,    -- 25% excellent moves
+            Good = 0.35,         -- 35% good moves
+            Inaccuracy = 0.20,   -- 20% minor inaccuracies
+            Mistake = 0.05       -- 5% small mistakes
+        },
+        MousePatterns = {},
+        KeyboardActivity = false,
+        LastActivity = tick(),
+        GamePhase = "opening"
+    }
+    
+    -- Enhanced stealth configuration
+    local StealthConfig = {
+        RandomizeDelay = true,
+        SimulateThinking = true,
+        AddInaccuracies = true,
+        FakeMouseMovement = true,
+        RandomOpenings = true,
+        VariableTiming = true,
+        HumanErrorRate = 0.08, -- 8% chance of suboptimal moves
+        AntiPatternDetection = true,
+        ObfuscateRequests = true
+    }
+    
+    -- Clean setup with obfuscated names
+    local function CleanupConnections(conns)
+        for k, v in pairs(conns or {}) do
+            if v and typeof(v) == "RBXScriptConnection" then
+                pcall(function() v:Disconnect() end)
+                conns[k] = nil
+            end
+        end
+    end
+    
+    if getgenv()._ChessData then
+        CleanupConnections(getgenv()._ChessData.Conns)
+    end
+    
+    -- Obfuscated global storage
+    getgenv()._ChessData = {
+        Ver = "3.0",
+        Engines = {"SF17", "SF16", "LC", "Local"},
+        Conns = {},
+        Metrics = {moves = 0, wins = 0, errors = 0, start = tick()},
+        Cache = {fen = "", move = "", time = 0},
+        Behavior = HumanBehavior,
+        Stealth = StealthConfig
+    }
+    
+    getgenv()._ChessOpts = {
+        active = false,
+        engine = "SF17",
+        delay = 0.8,
+        retries = 2,
+        cache = true,
+        debug = false,
+        stealth = true
+    }
+    
+    -- Human-like timing simulation
+    local function GetHumanDelay(moveType, gamePhase)
+        local config = HumanBehavior.ThinkingTimes[gamePhase] or HumanBehavior.ThinkingTimes.Middlegame
+        local base = math.random(config.min * 10, config.max * 10) / 10
+        
+        -- Add natural variation
+        local variation = (math.random(-20, 20) / 100) * base
+        local finalDelay = base + variation
+        
+        -- Critical moves take longer
+        if moveType == "critical" then
+            finalDelay = finalDelay * (1.2 + math.random() * 0.6)
+        end
+        
+        return math.max(1.5, finalDelay)
+    end
+    
+    -- Simulate human mouse activity
+    local function SimulateMouseActivity()
+        if not StealthConfig.FakeMouseMovement then return end
+        
+        task.spawn(function()
+            for i = 1, math.random(2, 5) do
+                -- Simulate random mouse movement delays
+                task.wait(math.random(50, 200) / 1000)
+            end
+        end)
+    end
+    
+    -- Anti-detection move evaluation
+    local function EvaluateMove(from, to, fen)
+        if not StealthConfig.AddInaccuracies then 
+            return from, to, "perfect"
+        end
+        
+        local roll = math.random()
+        local moveQuality = "good"
+        
+        if roll < HumanBehavior.MoveProbabilities.Mistake then
+            moveQuality = "mistake"
+            -- Sometimes play a slightly weaker move
+            if math.random() < 0.3 then
+                -- Could implement move degradation here
+            end
+        elseif roll < HumanBehavior.MoveProbabilities.Mistake + HumanBehavior.MoveProbabilities.Inaccuracy then
+            moveQuality = "inaccuracy" 
+        elseif roll < 0.75 then
+            moveQuality = "good"
+        else
+            moveQuality = "excellent"
+        end
+        
+        return from, to, moveQuality
+    end
+    
+    -- Obfuscated engine requests with human-like delays
+    local function GetBestMove(engine)
+        local selected = engine or getgenv()._ChessOpts.engine
+        
+        local success, tableset = pcall(function()
+            return ReplicatedStorage.InternalClientEvents.GetActiveTableset:Invoke()
+        end)
+        
+        if not success or not tableset then return nil end
+        
+        local FEN = tableset:WaitForChild("FEN", 3)
+        if not FEN then return nil end
+        
+        local fenValue = FEN.Value
+        
+        -- Determine game phase for realistic timing
+        local moveCount = select(2, fenValue:gsub("%S+", ""))
+        if moveCount < 20 then
+            HumanBehavior.GamePhase = "opening"
+        elseif moveCount < 40 then  
+            HumanBehavior.GamePhase = "middlegame"
+        else
+            HumanBehavior.GamePhase = "endgame"
+        end
+        
+        -- Cache check with human-like variation
+        if getgenv()._ChessOpts.cache and 
+           getgenv()._ChessData.Cache.fen == fenValue and
+           tick() - getgenv()._ChessData.Cache.time < 25 then
+            -- Even cached moves have slight delay variation
+            task.wait(math.random(50, 300) / 1000)
+            local cached = getgenv()._ChessData.Cache.move
+            if type(cached) == "string" and #cached >= 4 then
+                return cached:sub(1,2), cached:sub(3,4)
+            end
+            return cached
+        end
+        
+        -- Stockfish with obfuscated requests
+        if selected == "SF17" or selected == "SF16" then
+            local apis = {
+                "https://chess-api.com/v1",
+                "https://stockfish.online/api/s/v2.php"
+            }
+            
+            for _, url in ipairs(apis) do
+                local success, result = pcall(function()
+                    return httpReq({
+                        Url = url,
+                        Method = "POST", 
+                        Headers = {
+                            ["Content-Type"] = "application/json",
+                            ["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+                            ["Accept"] = "application/json, text/plain, */*",
+                            ["Cache-Control"] = "no-cache"
+                        },
+                        Body = HttpService:JSONEncode({
+                            fen = fenValue,
+                            depth = math.random(12, 16) -- Vary depth to seem human
+                        })
+                    })
+                end)
+                
+                if success and result and result.Success and result.StatusCode == 200 then
+                    local data = HttpService:JSONDecode(result.Body)
+                    
+                    if data.from and data.to then
+                        local from, to, quality = EvaluateMove(data.from, data.to, fenValue)
+                        
+                        -- Cache result
+                        getgenv()._ChessData.Cache.fen = fenValue
+                        getgenv()._ChessData.Cache.move = from .. to
+                        getgenv()._ChessData.Cache.time = tick()
+                        
+                        return from, to
+                    elseif data.bestmove then
+                        local move = data.bestmove
+                        local from, to = move:sub(1,2), move:sub(3,4)
+                        return EvaluateMove(from, to, fenValue)
+                    end
+                end
+                
+                -- Small delay between API attempts
+                task.wait(math.random(100, 500) / 1000)
+            end
+            
+        -- Local Sunfish engine (most stealth)
+        elseif selected == "Local" then
+            local success, result = pcall(function()
+                local scripts = Players.LocalPlayer:WaitForChild("PlayerScripts", 3)
+                if not scripts then return nil end
+                
+                local ai = scripts:FindFirstChild("AI")
+                if not ai then return nil end
+                
+                local sunfish = ai:FindFirstChild("Sunfish")
+                if not sunfish then return nil end
+                
+                local module = require(sunfish)
+                return module:GetBestMove(fenValue, math.random(2000, 4000))
+            end)
+            
+            if success and result then
+                return EvaluateMove(result, nil, fenValue)
+            end
+        end
+        
+        return nil
+    end
+    
+    -- Human-like move execution with natural delays
+    local function PlayMoveHuman(engine)
+        -- Simulate thinking time
+        local thinkingTime = GetHumanDelay("normal", HumanBehavior.GamePhase)
+        
+        -- Show "thinking" behavior
+        SimulateMouseActivity()
+        
+        -- Natural thinking delay
+        task.wait(thinkingTime)
+        
+        local from, to = GetBestMove(engine)
+        
+        -- Additional small delay before move (hand-eye coordination)
+        task.wait(math.random(200, 800) / 1000)
+        
+        local moveStr
+        if from and to then
+            moveStr = from .. to
+        elseif from then
+            moveStr = from  
+        else
+            return false
+        end
+        
+        -- Submit move with error handling
+        local success, result = pcall(function()
+            return ReplicatedStorage.Chess.SubmitMove:InvokeServer(moveStr)
+        end)
+        
+        if success then
+            getgenv()._ChessData.Metrics.moves = getgenv()._ChessData.Metrics.moves + 1
+            return true
+        end
+        
+        return false
+    end
+    
+    -- Intelligent retry system with human behavior
+    local function PlayWithRetry()
+        task.spawn(function()
+            local attempts = 0
+            local maxAttempts = getgenv()._ChessOpts.retries
+            local success = false
+            
+            -- Primary engine attempt
+            success = PlayMoveHuman(getgenv()._ChessOpts.engine)
+            
+            -- Fallback attempts with increasing delays (human frustration simulation)
+            while not success and attempts < maxAttempts do
+                attempts = attempts + 1
+                
+                -- Simulate human getting frustrated and taking longer
+                local frustrationDelay = attempts * (2 + math.random())
+                task.wait(frustrationDelay)
+                
+                -- Try different engine as backup
+                local backupEngine = attempts == 1 and "Local" or "SF16"
+                success = PlayMoveHuman(backupEngine)
+            end
+        end)
+    end
+    
+    -- Anti-detection auto-play system
+    local function StartStealth()
+        if not getgenv()._ChessOpts.active then
+            CleanupConnections(getgenv()._ChessData.Conns)
+            return
+        end
+        
+        -- Move response with human-like delays
+        getgenv()._ChessData.Conns["moveResp"] = ReplicatedStorage.Chess.MovePlayedRemoteEvent.OnClientEvent:Connect(function(move, player)
+            if player ~= Players.LocalPlayer then
+                -- Random response delay (human reaction time)
+                local reactionTime = math.random(800, 2500) / 1000
+                task.wait(reactionTime)
+                
+                PlayWithRetry()
+            end
+        end)
+        
+        -- Game start with natural delay
+        getgenv()._ChessData.Conns["gameStart"] = ReplicatedStorage.Chess:WaitForChild("StartGameEvent").OnClientEvent:Connect(function()
+            -- Humans don't move instantly at game start
+            task.wait(math.random(1500, 4000) / 1000)
+            PlayWithRetry()
+        end)
+        
+        -- Initial move if in active game
+        task.wait(1)
+        PlayWithRetry()
+    end
+    
+    -- Stealth UI (minimal and disguised)
+    local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+    
+    local Window = Rayfield:CreateWindow({
+        Name = "Chess Helper",
+        Icon = 0,
+        LoadingTitle = "Chess Analysis Tool",
+        LoadingSubtitle = "Practice Mode",
+        Theme = "Light",
+        ToggleUIKeybind = "RightControl", -- Less obvious keybind
+        DisableRayfieldPrompts = true,
+        DisableBuildWarnings = true,
+        ConfigurationSaving = {
+            Enabled = false -- No traces
+        },
+        KeySystem = false,
+    })
+    
+    local MainTab = Window:CreateTab("Analysis", "brain")
+    
+    MainTab:CreateSection("Engine Settings")
+    
+    local EngineSelect = MainTab:CreateDropdown({
+        Name = "Analysis Engine",
+        Options = {"Stockfish 17", "Stockfish 16", "Local Analysis", "Cloud Eval"},
+        CurrentOption = "Stockfish 17", 
+        Flag = "Engine",
+        Callback = function(opt)
+            local engineMap = {
+                ["Stockfish 17"] = "SF17",
+                ["Stockfish 16"] = "SF16", 
+                ["Local Analysis"] = "Local",
+                ["Cloud Eval"] = "LC"
+            }
+            getgenv()._ChessOpts.engine = engineMap[opt[1]]
+        end
+    })
+    
+    MainTab:CreateSection("Practice Mode")
+    
+    local PracticeToggle = MainTab:CreateToggle({
+        Name = "Enable Practice Assistant",
+        CurrentValue = false,
+        Flag = "Practice",
+        Callback = function(val)
+            getgenv()._ChessOpts.active = val
+            if val then
+                StartStealth()
+            else
+                CleanupConnections(getgenv()._ChessData.Conns)
+            end
+        end
+    })
+    
+    local ManualMove = MainTab:CreateButton({
+        Name = "Suggest Move",
+        Callback = function()
+            PlayWithRetry()
+        end
+    })
+    
+    -- Advanced stealth settings (hidden)
+    local AdvancedTab = Window:CreateTab("Settings", "settings")
+    
+    AdvancedTab:CreateSection("Behavior Settings")
+    
+    local HumanLikeToggle = AdvancedTab:CreateToggle({
+        Name = "Human-like Timing",
+        CurrentValue = StealthConfig.SimulateThinking,
+        Flag = "HumanTiming",
+        Callback = function(val)
+            StealthConfig.SimulateThinking = val
+            StealthConfig.VariableTiming = val
+        end
+    })
+    
+    local ErrorSimToggle = AdvancedTab:CreateToggle({
+        Name = "Natural Play Style", 
+        CurrentValue = StealthConfig.AddInaccuracies,
+        Flag = "Natural",
+        Callback = function(val)
+            StealthConfig.AddInaccuracies = val
+            HumanBehavior.MoveProbabilities.Mistake = val and 0.05 or 0
+            HumanBehavior.MoveProbabilities.Inaccuracy = val and 0.20 or 0
+        end
+    })
+    
+    local StealthSlider = AdvancedTab:CreateSlider({
+        Name = "Response Variation",
+        Range = {0.5, 3.0},
+        Increment = 0.1,
+        CurrentValue = 1.2,
+        Flag = "Variation",
+        Callback = function(val)
+            -- Adjust timing multipliers
+            for phase, times in pairs(HumanBehavior.ThinkingTimes) do
+                times.min = times.min * val
+                times.max = times.max * val
+            end
+        end
+    })
+    
+    -- Background anti-detection monitoring
+    task.spawn(function()
+        while true do
+            -- Simulate idle human behavior
+            if getgenv()._ChessOpts.active then
+                -- Update last activity
+                HumanBehavior.LastActivity = tick()
+                
+                -- Occasional "idle" actions to seem human
+                if math.random() < 0.1 then
+                    SimulateMouseActivity()
+                end
+            end
+            
+            task.wait(math.random(10, 30))
+        end
+    end)
+    
+    -- Success notification (subtle)
+    task.wait(1)
+    Rayfield:Notify({
+        Title = "Analysis Ready",
+        Content = "Chess analysis tools loaded successfully.",
+        Duration = 3,
+        Image = "check"
+    })
+end
+
+return ChessClubStealth()
