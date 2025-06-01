@@ -3,7 +3,7 @@
 -- Features: WalkSpeed, Reach, Spin with advanced stealth technology
 
 repeat task.wait() until game:IsLoaded()
-if game.PlaceId ~= 10191847911 then 
+if game.PlaceId ~= 15849312965 then 
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "❌ Wrong Game",
         Text = "This script is for Steal Time From Others only!",
