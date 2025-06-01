@@ -1,0 +1,563 @@
+-- STEALTH PRO - Ultra Anti-Detection System
+-- Target: Game PlaceId 15849312965
+-- Features: WalkSpeed, Reach, Spin with advanced stealth technology
+
+repeat task.wait() until game:IsLoaded()
+if game.PlaceId ~= 15849312965 then 
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "❌ Wrong Game",
+        Text = "This script is for the target game only!",
+        Duration = 5
+    })
+    return 
+end
+
+-- Anti-Detection Core System
+local S = setmetatable({}, {__index = function(t,k) local s = game:GetService(k) t[k] = s return s end})
+local Players = S.Players
+local RunService = S.RunService
+local UserInputService = S.UserInputService
+local LocalPlayer = Players.LocalPlayer
+
+-- Stealth Configuration
+getgenv().StealthPro = getgenv().StealthPro or {
+    connections = {},
+    originalValues = {},
+    antiPatterns = {},
+    detectionBypass = {
+        lastUpdate = 0,
+        randomSeed = math.random(1000, 9999),
+        patternBreakers = {}
+    },
+    state = {
+        walkSpeed = false,
+        reach = false,
+        spin = false,
+        mobile = game:GetService("GuiService"):IsTenFootInterface()
+    }
+}
+
+local cfg = {
+    walkSpeed = {enabled = false, value = 16, min = 16, max = 100, stealth = true},
+    reach = {enabled = false, value = 10, min = 4, max = 50, stealth = true},
+    spin = {enabled = false, speed = 50, direction = 1, smooth = true},
+    antiDetection = {
+        randomization = true,
+        naturalMovement = true,
+        patternBreak = true,
+        delayVariation = true
+    },
+    ui = {
+        mobileOptimized = true,
+        compactMode = false,
+        transparency = 0.1
+    }
+}
+
+-- Advanced Anti-Detection Functions
+local function cleanup(conns)
+    for _,c in pairs(conns or {}) do 
+        pcall(function() c:Disconnect() end) 
+    end
+    getgenv().StealthPro.connections = {}
+end
+cleanup(getgenv().STFOStealth.connections)
+
+local function addRandomNoise(value, percentage)
+    if not cfg.antiDetection.randomization then return value end
+    local noise = (math.random() - 0.5) * 2 * (value * percentage / 100)
+    return math.max(0, value + noise)
+end
+
+local function createPatternBreaker()
+    local breaker = {
+        lastAction = tick(),
+        variance = math.random(80, 120) / 100,
+        cooldown = math.random(100, 300) / 100
+    }
+    table.insert(getgenv().StealthPro.detectionBypass.patternBreakers, breaker)
+    return breaker
+end
+
+local function isPatternSafe()
+    if not cfg.antiDetection.patternBreak then return true end
+    local now = tick()
+    local bypass = getgenv().StealthPro.detectionBypass
+    
+    if now - bypass.lastUpdate < 0.1 then return false end
+    bypass.lastUpdate = now
+    
+    return math.random() > 0.02 -- 2% chance to skip for pattern breaking
+end
+
+-- Stealth WalkSpeed System
+local function setupWalkSpeed()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    
+    -- Store original
+    if not getgenv().STFOStealth.originalValues.walkSpeed then
+        getgenv().STFOStealth.originalValues.walkSpeed = humanoid.WalkSpeed
+    end
+    
+    local function updateWalkSpeed()
+        if not cfg.walkSpeed.enabled or not isPatternSafe() then return end
+        
+        local targetSpeed = cfg.walkSpeed.stealth and 
+            addRandomNoise(cfg.walkSpeed.value, 5) or cfg.walkSpeed.value
+        
+        -- Gradual change for stealth
+        if cfg.antiDetection.naturalMovement then
+            local currentSpeed = humanoid.WalkSpeed
+            local diff = targetSpeed - currentSpeed
+            if math.abs(diff) > 1 then
+                humanoid.WalkSpeed = currentSpeed + (diff * 0.3)
+            else
+                humanoid.WalkSpeed = targetSpeed
+            end
+        else
+            humanoid.WalkSpeed = targetSpeed
+        end
+    end
+    
+    -- Anti-detection connection
+    getgenv().STFOStealth.connections.walkSpeed = RunService.Heartbeat:Connect(function()
+        if math.random() > 0.95 then -- Only update 5% of the time
+            updateWalkSpeed()
+        end
+    end)
+    
+    -- Character reset protection
+    getgenv().STFOStealth.connections.characterAdded = LocalPlayer.CharacterAdded:Connect(function(newChar)
+        task.wait(2) -- Wait for character to load
+        setupWalkSpeed()
+    end)
+end
+
+-- Advanced Reach System
+local function setupReach()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local function getClosestTarget()
+        local mouse = LocalPlayer:GetMouse()
+        local camera = workspace.CurrentCamera
+        local closestTarget = nil
+        local shortestDistance = cfg.reach.value
+        
+        for _, player in pairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local targetPos = player.Character.HumanoidRootPart.Position
+                local screenPos, onScreen = camera:WorldToScreenPoint(targetPos)
+                
+                if onScreen then
+                    local distance = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(mouse.X, mouse.Y)).Magnitude
+                    if distance < shortestDistance then
+                        shortestDistance = distance
+                        closestTarget = player.Character.HumanoidRootPart
+                    end
+                end
+            end
+        end
+        
+        return closestTarget
+    end
+    
+    local function performReach()
+        if not cfg.reach.enabled or not isPatternSafe() then return end
+        
+        local target = getClosestTarget()
+        if not target then return end
+        
+        local tool = character:FindFirstChildOfClass("Tool")
+        if not tool or not tool:FindFirstChild("Handle") then return end
+        
+        -- Stealth reach implementation
+        local originalCFrame = tool.Handle.CFrame
+        local targetPosition = target.Position
+        local reachDistance = cfg.reach.stealth and 
+            addRandomNoise(cfg.reach.value, 8) or cfg.reach.value
+        
+        -- Calculate reach position with randomization
+        local direction = (targetPosition - tool.Handle.Position).Unit
+        local reachOffset = direction * reachDistance
+        local finalPosition = tool.Handle.Position + reachOffset
+        
+        -- Apply with delay variation
+        if cfg.antiDetection.delayVariation then
+            task.wait(math.random(1, 15) / 1000) -- 1-15ms random delay
+        end
+        
+        tool.Handle.CFrame = CFrame.lookAt(finalPosition, targetPosition)
+        
+        -- Restore after short delay
+        task.spawn(function()
+            task.wait(0.05 + math.random() * 0.02)
+            if tool and tool.Handle then
+                tool.Handle.CFrame = originalCFrame
+            end
+        end)
+    end
+    
+    getgenv().STFOStealth.connections.reach = UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or 
+           input.UserInputType == Enum.UserInputType.Touch then
+            performReach()
+        end
+    end)
+end
+
+-- Smooth Spin System
+local function setupSpin()
+    local character = LocalPlayer.Character
+    if not character then return end
+    
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+    
+    local spinConnection
+    local function startSpin()
+        if spinConnection then spinConnection:Disconnect() end
+        
+        local bodyAngularVelocity = Instance.new("BodyAngularVelocity")
+        bodyAngularVelocity.MaxTorque = Vector3.new(0, math.huge, 0)
+        bodyAngularVelocity.Parent = humanoidRootPart
+        
+        spinConnection = RunService.Heartbeat:Connect(function()
+            if not cfg.spin.enabled then
+                bodyAngularVelocity:Destroy()
+                spinConnection:Disconnect()
+                return
+            end
+            
+            local spinSpeed = cfg.spin.smooth and 
+                addRandomNoise(cfg.spin.speed, 3) or cfg.spin.speed
+            
+            bodyAngularVelocity.AngularVelocity = Vector3.new(0, spinSpeed * cfg.spin.direction, 0)
+        end)
+        
+        getgenv().STFOStealth.connections.spin = spinConnection
+    end
+    
+    if cfg.spin.enabled then
+        startSpin()
+    end
+end
+
+-- Mobile-Optimized UI System
+local function createMobileUI()
+    local Rayfield = loadstring(game:HttpGet("https://sirius.menu/rayfield"))()
+    
+    local Window = Rayfield:CreateWindow({
+        Name = "⚔️ STFO Stealth Pro",
+        LoadingTitle = "Loading Anti-Detection System",
+        LoadingSubtitle = "Initializing stealth protocols...",
+        ToggleUIKeybind = cfg.ui.mobileOptimized and Enum.KeyCode.RightControl or Enum.KeyCode.K,
+        ConfigurationSaving = {
+            Enabled = true, 
+            FolderName = "STFOStealth",
+            FileName = "StealthConfig"
+        },
+    })
+    
+    -- Main Features Tab
+    local Main = Window:CreateTab("🚀 Main Features", "zap")
+    
+    Main:CreateSection("Movement Enhancement")
+    
+    local walkSpeedToggle = Main:CreateToggle({
+        Name = "🏃 Enhanced Walk Speed",
+        CurrentValue = cfg.walkSpeed.enabled,
+        Callback = function(val)
+            cfg.walkSpeed.enabled = val
+            if val then
+                setupWalkSpeed()
+                Rayfield:Notify({
+                    Title = "Walk Speed ON",
+                    Content = "Stealth movement activated!",
+                    Duration = 2
+                })
+            else
+                if getgenv().STFOStealth.connections.walkSpeed then
+                    getgenv().STFOStealth.connections.walkSpeed:Disconnect()
+                end
+                -- Restore original
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChildOfClass("Humanoid") then
+                    char.Humanoid.WalkSpeed = getgenv().STFOStealth.originalValues.walkSpeed or 16
+                end
+            end
+        end,
+    })
+    
+    local walkSpeedSlider = Main:CreateSlider({
+        Name = "💨 Walk Speed Value",
+        Range = {16, 100},
+        Increment = 1,
+        CurrentValue = cfg.walkSpeed.value,
+        Callback = function(val)
+            cfg.walkSpeed.value = val
+        end,
+    })
+    
+    Main:CreateSection("Combat Enhancement")
+    
+    local reachToggle = Main:CreateToggle({
+        Name = "🗡️ Extended Reach",
+        CurrentValue = cfg.reach.enabled,
+        Callback = function(val)
+            cfg.reach.enabled = val
+            if val then
+                setupReach()
+                Rayfield:Notify({
+                    Title = "Reach ON",
+                    Content = "Combat range extended!",
+                    Duration = 2
+                })
+            else
+                if getgenv().STFOStealth.connections.reach then
+                    getgenv().STFOStealth.connections.reach:Disconnect()
+                end
+            end
+        end,
+    })
+    
+    local reachSlider = Main:CreateSlider({
+        Name = "📏 Reach Distance",
+        Range = {4, 50},
+        Increment = 1,
+        CurrentValue = cfg.reach.value,
+        Callback = function(val)
+            cfg.reach.value = val
+        end,
+    })
+    
+    local spinToggle = Main:CreateToggle({
+        Name = "🌪️ Auto Spin",
+        CurrentValue = cfg.spin.enabled,
+        Callback = function(val)
+            cfg.spin.enabled = val
+            if val then
+                setupSpin()
+                Rayfield:Notify({
+                    Title = "Spin ON",
+                    Content = "360° combat mode activated!",
+                    Duration = 2
+                })
+            end
+        end,
+    })
+    
+    local spinSlider = Main:CreateSlider({
+        Name = "⚡ Spin Speed",
+        Range = {10, 100},
+        Increment = 5,
+        CurrentValue = cfg.spin.speed,
+        Callback = function(val)
+            cfg.spin.speed = val
+        end,
+    })
+    
+    -- Stealth Settings Tab
+    local Stealth = Window:CreateTab("🛡️ Anti-Detection", "shield")
+    
+    Stealth:CreateSection("Stealth Protocols")
+    
+    local randomToggle = Stealth:CreateToggle({
+        Name = "🎲 Value Randomization",
+        CurrentValue = cfg.antiDetection.randomization,
+        Callback = function(val)
+            cfg.antiDetection.randomization = val
+        end,
+    })
+    
+    local naturalToggle = Stealth:CreateToggle({
+        Name = "🌊 Natural Movement",
+        CurrentValue = cfg.antiDetection.naturalMovement,
+        Callback = function(val)
+            cfg.antiDetection.naturalMovement = val
+        end,
+    })
+    
+    local patternToggle = Stealth:CreateToggle({
+        Name = "🔄 Pattern Breaking",
+        CurrentValue = cfg.antiDetection.patternBreak,
+        Callback = function(val)
+            cfg.antiDetection.patternBreak = val
+        end,
+    })
+    
+    local delayToggle = Stealth:CreateToggle({
+        Name = "⏱️ Delay Variation",
+        CurrentValue = cfg.antiDetection.delayVariation,
+        Callback = function(val)
+            cfg.antiDetection.delayVariation = val
+        end,
+    })
+    
+    Stealth:CreateSection("Safety Presets")
+    
+    local safePreset = Stealth:CreateButton({
+        Name = "🟢 Ultra Safe Mode",
+        Callback = function()
+            cfg.walkSpeed.value = 22
+            cfg.reach.value = 8
+            cfg.spin.speed = 25
+            cfg.antiDetection = {
+                randomization = true,
+                naturalMovement = true,
+                patternBreak = true,
+                delayVariation = true
+            }
+            walkSpeedSlider:Set(22)
+            reachSlider:Set(8)
+            spinSlider:Set(25)
+            Rayfield:Notify({
+                Title = "Ultra Safe Mode",
+                Content = "Maximum stealth settings applied!",
+                Duration = 3
+            })
+        end,
+    })
+    
+    local balancedPreset = Stealth:CreateButton({
+        Name = "🟡 Balanced Mode",
+        Callback = function()
+            cfg.walkSpeed.value = 35
+            cfg.reach.value = 15
+            cfg.spin.speed = 40
+            walkSpeedSlider:Set(35)
+            reachSlider:Set(15)
+            spinSlider:Set(40)
+            Rayfield:Notify({
+                Title = "Balanced Mode",
+                Content = "Optimal performance settings applied!",
+                Duration = 3
+            })
+        end,
+    })
+    
+    -- Quick Actions Tab
+    local Quick = Window:CreateTab("⚡ Quick Actions", "lightning")
+    
+    Quick:CreateSection("Instant Controls")
+    
+    local allOnBtn = Quick:CreateButton({
+        Name = "🔥 Enable All Features",
+        Callback = function()
+            cfg.walkSpeed.enabled = true
+            cfg.reach.enabled = true
+            cfg.spin.enabled = true
+            
+            walkSpeedToggle:Set(true)
+            reachToggle:Set(true)
+            spinToggle:Set(true)
+            
+            setupWalkSpeed()
+            setupReach()
+            setupSpin()
+            
+            Rayfield:Notify({
+                Title = "All Features ON",
+                Content = "Full stealth mode activated!",
+                Duration = 3
+            })
+        end,
+    })
+    
+    local allOffBtn = Quick:CreateButton({
+        Name = "❌ Disable All Features",
+        Callback = function()
+            cfg.walkSpeed.enabled = false
+            cfg.reach.enabled = false
+            cfg.spin.enabled = false
+            
+            walkSpeedToggle:Set(false)
+            reachToggle:Set(false)
+            spinToggle:Set(false)
+            
+            cleanup(getgenv().STFOStealth.connections)
+            
+            -- Restore original values
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChildOfClass("Humanoid") then
+                char.Humanoid.WalkSpeed = getgenv().STFOStealth.originalValues.walkSpeed or 16
+            end
+            
+            Rayfield:Notify({
+                Title = "All Features OFF",
+                Content = "Stealth mode deactivated!",
+                Duration = 2
+            })
+        end,
+    })
+    
+    Quick:CreateSection("Emergency")
+    
+    local panicBtn = Quick:CreateButton({
+        Name = "🚨 PANIC MODE",
+        Callback = function()
+            -- Instantly disable everything and reset
+            cleanup(getgenv().STFOStealth.connections)
+            getgenv().STFOStealth = nil
+            
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChildOfClass("Humanoid") then
+                char.Humanoid.WalkSpeed = 16
+            end
+            
+            Rayfield:Notify({
+                Title = "PANIC MODE ACTIVATED",
+                Content = "All traces removed! Script disabled.",
+                Duration = 5
+            })
+            
+            -- Close UI after short delay
+            task.wait(2)
+            Rayfield:Destroy()
+        end,
+    })
+    
+    -- Success notification
+    Rayfield:Notify({
+        Title = "⚔️ STFO Stealth Pro Ready",
+        Content = "Anti-detection system fully loaded!",
+        Duration = 4,
+        Image = "shield-check",
+    })
+    
+    return Window
+end
+
+-- Initialize System
+local function initialize()
+    -- Character setup
+    if LocalPlayer.Character then
+        setupWalkSpeed()
+        setupReach()
+        setupSpin()
+    end
+    
+    -- Character respawn handler
+    LocalPlayer.CharacterAdded:Connect(function(character)
+        task.wait(2) -- Wait for character to fully load
+        if cfg.walkSpeed.enabled then setupWalkSpeed() end
+        if cfg.reach.enabled then setupReach() end
+        if cfg.spin.enabled then setupSpin() end
+    end)
+    
+    -- Create UI
+    createMobileUI()
+    
+    -- Success message
+    print("[STFO Stealth] Successfully loaded with anti-detection protocols!")
+    print("[STFO Stealth] Target game verified: Steal Time From Others")
+    print("[STFO Stealth] Mobile optimization: " .. (cfg.ui.mobileOptimized and "Enabled" or "Disabled"))
+end
+
+-- Launch
+task.spawn(initialize)
