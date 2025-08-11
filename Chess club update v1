@@ -31,13 +31,13 @@ local function ChessClubStealth()
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     
-    -- Human behavior simulation data
+    -- Human behavior simulation data (with reduced delays for better responsiveness)
     local HumanBehavior = {
         ThinkingTimes = {
-            Opening = {min = 2, max = 8, avg = 4.5},
-            Middlegame = {min = 3, max = 15, avg = 7.2},
-            Endgame = {min = 1, max = 12, avg = 5.8},
-            Critical = {min = 5, max = 25, avg = 12.1}
+            Opening = {min = 0.5, max = 2, avg = 1.2},
+            Middlegame = {min = 1, max = 4, avg = 2.5},
+            Endgame = {min = 0.5, max = 3, avg = 1.8},
+            Critical = {min = 2, max = 6, avg = 4.0}
         },
         MoveProbabilities = {
             Perfect = 0.15,
@@ -102,7 +102,6 @@ local function ChessClubStealth()
         active = false,
         engine = "SF17",
         delay = 0.8,
-        retries = 2,
         cache = true,
         debug = false,
         stealth = true,
@@ -292,7 +291,7 @@ local function ChessClubStealth()
         
         local from, to = GetBestMove(engine)
         
-        task.wait(math.random(200, 800) / 1000)
+        task.wait(math.random(100, 250) / 1000) -- Reduced hand-eye delay
         
         local moveStr
         if from and to then
@@ -315,21 +314,32 @@ local function ChessClubStealth()
         return false
     end
     
-    -- Manages the auto-play logic with retries and fallbacks.
+    -- Manages the auto-play logic with a more robust retry and fallback system.
     local function PlayWithRetry()
         task.spawn(function()
-            local attempts = 0
-            local maxAttempts = getgenv()._ChessOpts.retries
+            local primaryEngine = getgenv()._ChessOpts.engine
             local success = false
-            
-            success = PlayMoveHuman(getgenv()._ChessOpts.engine)
-            
-            while not success and attempts < maxAttempts do
-                attempts = attempts + 1
-                local frustrationDelay = attempts * (2 + math.random())
+
+            -- 1. Try the primary engine first
+            success = PlayMoveHuman(primaryEngine)
+            if success then return end
+
+            -- 2. If primary fails, create a list of fallback engines
+            local fallbackEngines = {}
+            for _, eng in ipairs(getgenv()._ChessData.Engines) do
+                if eng ~= primaryEngine then
+                    table.insert(fallbackEngines, eng)
+                end
+            end
+
+            -- 3. Loop through fallback engines until one succeeds
+            for i = 1, #fallbackEngines do
+                local fallbackEngine = fallbackEngines[i]
+                local frustrationDelay = i * (0.5 + math.random() * 0.5)
                 task.wait(frustrationDelay)
-                local backupEngine = attempts == 1 and "Local" or "SF16"
-                success = PlayMoveHuman(backupEngine)
+                
+                success = PlayMoveHuman(fallbackEngine)
+                if success then return end
             end
         end)
     end
@@ -343,7 +353,7 @@ local function ChessClubStealth()
         
         getgenv()._ChessData.Conns["moveResp"] = ReplicatedStorage.Chess.MovePlayedRemoteEvent.OnClientEvent:Connect(function(move, player)
             if player ~= Players.LocalPlayer then
-                local reactionTime = math.random(800, 2500) / 1000
+                local reactionTime = math.random(400, 1000) / 1000 -- Reduced reaction time
                 task.wait(reactionTime)
                 PlayWithRetry()
             end
