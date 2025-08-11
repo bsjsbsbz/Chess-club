@@ -365,7 +365,7 @@ local function ChessClubStealth()
         Name = "Advanced Chess Bot v4.0",
         LoadingTitle = "Advanced Chess Bot",
         Theme = "Light",
-        ToggleUIKeybind = "RightControl"
+        ToggleUIKeybind = "P"
     })
     
     -- Main Tab: Controls for engine and auto-play
